@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosecha Automatizada - Matriz Semanal</title>
+    <!-- Enlace al manifiesto para poder instalarla en el celular -->
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg-principal: #0d110d;
+            --bg-tarjeta: #141914;
+            --bg-input: #090c09;
+            --verde-neon: #00e676;
+            --azul-cyan: #00b0ff;
+            --rojo-alerta: #ff5252;
+            --texto-blanco: #ffffff;
+            --texto-gris: #8a948a;
+            --borde: #222e22;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-principal);
+            color: var(--texto-blanco);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--bg-tarjeta);
+            width: 100%;
+            text-align: center;
+            padding: 15px 0;
+            border-bottom: 2px solid var(--verde-neon);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 { margin: 0; font-size: 1rem; letter-spacing: 1px; text-transform: uppercase; }
+
+        main {
+            width: 95%;
+            max-width: 480px;
+            padding: 15px 0 40px 0;
+        }
+
+        .grid-totales {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tarjeta-total {
+            background-color: var(--bg-tarjeta);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid var(--borde);
+            text-align: center;
+        }
+
+        .total-valor { font-size: 1.4rem; font-weight: bold; margin-top: 4px; }
+        .color-kilos { color: var(--verde-neon); }
+        .color-pesos { color: var(--azul-cyan); }
+
+        .panel-control {
+            background-color: var(--bg-tarjeta);
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid var(--borde);
+            margin-bottom: 15px;
+        }
+
+        .control-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-inline div { flex: 1; }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--texto-gris);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--borde);
+            border-radius: 6px;
+            padding: 10px;
+            color: white;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--verde-neon); }
+
+        .btn-verde {
+            background-color: var(--verde-neon);
+            color: black;
+            border: none;
+            padding: 10px 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .contenedor-tabla {
+            background-color: var(--bg-tarjeta);
+            border-radius: 12px;
+            border: 1px solid var(--borde);
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .tarjeta-cosechero {
+            background-color: var(--bg-input);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--azul-cyan);
+        }
+
+        .header-cosechero {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .nombre-cosechero { font-weight: bold; font-size: 1.05rem; }
+
+        .grid-dias {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .dia-col { text-align: center; }
+        .dia-col span { display: block; font-size: 0.65rem; color: var(--texto-gris); margin-bottom: 3px; }
+        .dia-col input { padding: 6px 2px; text-align: center; font-size: 0.85rem; }
+
+        .footer-cosechero {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 8px;
+            border-top: 1px solid #1c241c;
+            padding-top: 8px;
+            align-items: center;
+        }
+
+        .resultado-individual {
+            font-size: 0.85rem;
+            text-align: right;
+        }
+
+        .btn-eliminar {
+            background: none;
+            border: none;
+            color: var(--rojo-alerta);
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-align: left;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🚜 COSECHA AUTOMATIZADA V2 - DESIGN BY MYERS</h1>
+    </header>
+
+    <main>
+        <div class="grid-totales">
+            <div class="tarjeta-total">
+                <span class="texto-etiqueta" style="font-size:0.7rem; color:var(--texto-gris);">KILOS TOTALES SEMANA</span>
+                <div class="total-valor color-kilos" id="granTotalKilos">0.0</div>
+            </div>
+            <div class="tarjeta-total">
+                <span class="texto-etiqueta" style="font-size:0.7rem; color:var(--texto-gris);">NÓMINA GENERAL NETO</span>
+                <div class="total-valor color-pesos" id="granTotalNomina">$0</div>
+            </div>
+        </div>
+
+        <div class="panel-control">
+            <div class="control-inline">
+                <div>
+                    <label for="precioKilo">Precio Kilo ($)</label>
+                    <input type="number" id="precioKilo" value="1200" oninput="calcularTotalesGenerales()">
+                </div>
+                <div>
+                    <label>Acción Colectiva</label>
+                    <button class="btn-verde" style="background-color:#ff5252; color:white; width:100%;" onclick="reiniciarSemana()">Reset Semana</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-control">
+            <label for="nuevoNombre">Registrar Nuevo Cosechero</label>
+            <div class="control-inline">
+                <input type="text" id="nuevoNombre" placeholder="Nombre del recolector...">
+                <button class="btn-verde" onclick="agregarCosechero()">AGREGAR</button>
+            </div>
+        </div>
+
+        <div class="contenedor-tabla">
+            <h3 style="margin: 0 0 12px 0; font-size: 0.9rem; text-transform: uppercase; color: var(--azul-cyan);">Planilla de Operaciones</h3>
+            <div id="listaCosecheros"></div>
+        </div>
+    </main>
+
+    <script>
+        let planilla = [];
+
+        window.onload = function() {
+            const datosLocales = localStorage.getItem('cosecha_semanal');
+            if (datosLocales) {
+                planilla = JSON.parse(datosLocales);
+            } else {
+                planilla = []; 
+            }
+            renderizarPlanilla();
+        };
+
+        function agregarCosechero() {
+            const inputNom = document.getElementById('nuevoNombre');
+            const nombre = inputNom.value.trim();
+            if (!nombre) return;
+
+            const nuevo = {
+                id: Date.now(),
+                nombre: nombre,
+                dias: [0, 0, 0, 0, 0, 0],
+                descuento: 0
+            };
+
+            planilla.push(nuevo);
+            inputNom.value = '';
+            guardarYRenderizar();
+        }
+
+        function actualizarDato(cosecheroId, tipo, indexDia, valor) {
+            const num = parseFloat(valor) || 0;
+            const item = planilla.find(c => c.id === cosecheroId);
+            
+            if (item) {
+                if (tipo === 'dia') {
+                    item.dias[indexDia] = num;
+                } else if (tipo === 'descuento') {
+                    item.descuento = num;
+                }
+                localStorage.setItem('cosecha_semanal', JSON.stringify(planilla));
+                calcularTotalesGenerales();
+            }
+        }
+
+        function evaluarTecla(event, cosecheroId, indexDia) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); 
+                const indexActual = planilla.findIndex(c => c.id === cosecheroId);
+                
+                if (indexActual !== -1 && indexActual + 1 < planilla.length) {
+                    const siguienteCosechero = planilla[indexActual + 1];
+                    const idSiguienteCasilla = `input-${siguienteCosechero.id}-${indexDia}`;
+                    const siguienteInput = document.getElementById(idSiguienteCasilla);
+                    
+                    if (siguienteInput) {
+                        siguienteInput.focus(); 
+                        siguienteInput.select(); 
+                    }
+                }
+            }
+        }
+
+        function renderizarPlanilla() {
+            const contenedor = document.getElementById('listaCosecheros');
+            contenedor.innerHTML = '';
+
+            if (planilla.length === 0) {
+                contenedor.innerHTML = `<div style="text-align:center; color:var(--texto-gris); padding:15px; font-size:0.85rem;">No hay cosecheros registrados.</div>`;
+                calcularTotalesGenerales();
+                return;
+            }
+
+            planilla.forEach(c => {
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'tarjeta-cosechero';
+                
+                tarjeta.innerHTML = `
+                    <div class="header-cosechero">
+                        <span class="nombre-cosechero">${c.nombre}</span>
+                        <button class="btn-eliminar" onclick="eliminarCosechero(${c.id})">Quitar</button>
+                    </div>
+                    
+                    <div class="grid-dias">
+                        <div class="dia-col"><span>Lun</span><input type="number" id="input-${c.id}-0" value="${c.dias[0]}" oninput="actualizarDato(${c.id}, 'dia', 0, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 0)"></div>
+                        <div class="dia-col"><span>Mar</span><input type="number" id="input-${c.id}-1" value="${c.dias[1]}" oninput="actualizarDato(${c.id}, 'dia', 1, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 1)"></div>
+                        <div class="dia-col"><span>Mié</span><input type="number" id="input-${c.id}-2" value="${c.dias[2]}" oninput="actualizarDato(${c.id}, 'dia', 2, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 2)"></div>
+                        <div class="dia-col"><span>Jue</span><input type="number" id="input-${c.id}-3" value="${c.dias[3]}" oninput="actualizarDato(${c.id}, 'dia', 3, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 3)"></div>
+                        <div class="dia-col"><span>Vie</span><input type="number" id="input-${c.id}-4" value="${c.dias[4]}" oninput="actualizarDato(${c.id}, 'dia', 4, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 4)"></div>
+                        <div class="dia-col"><span>Sáb</span><input type="number" id="input-${c.id}-5" value="${c.dias[5]}" oninput="actualizarDato(${c.id}, 'dia', 5, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 5)"></div>
+                    </div>
+
+                    <div class="footer-cosechero">
+                        <div>
+                            <label style="font-size:0.65rem;">Descuento ($)</label>
+                            <input type="number" value="${c.descuento}" placeholder="0" oninput="actualizarDato(${c.id}, 'descuento', null, this.value)">
+                        </div>
+                        <div class="resultado-individual" style="color: var(--verde-neon);">
+                            <span style="font-size:0.65rem; display:block; color:var(--texto-gris);">KG TOTAL</span>
+                            <strong id="kg-ind-${c.id}">0.0</strong>
+                        </div>
+                        <div class="resultado-individual" style="color: var(--azul-cyan);">
+                            <span style="font-size:0.65rem; display:block; color:var(--texto-gris);">NETO PAGO</span>
+                            <strong id="pago-ind-${c.id}">$0</strong>
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(tarjeta);
+            });
+
+            calcularTotalesGenerales();
+        }
+
+        function calcularTotalesGenerales() {
+            const precioKilo = parseFloat(document.getElementById('precioKilo').value) || 0;
+            let globalKilos = 0;
+            let globalNomina = 0;
+
+            planilla.forEach(c => {
+                const totalKilosCosechero = c.dias.reduce((a, b) => a + b, 0);
+                const brutoNomina = totalKilosCosechero * precioKilo;
+                const netoNomina = Math.max(0, brutoNomina - c.descuento);
+
+                globalKilos += totalKilosCosechero;
+                globalNomina += netoNomina;
+
+                const elKg = document.getElementById(`kg-ind-${c.id}`);
+                const elPago = document.getElementById(`pago-ind-${c.id}`);
+                
+                if (elKg) elKg.innerText = totalKilosCosechero.toFixed(1);
+                if (elPago) elPago.innerText = '$' + Math.round(netoNomina).toLocaleString('es-CO');
+            });
+
+            document.getElementById('granTotalKilos').innerText = globalKilos.toFixed(1);
+            document.getElementById('granTotalNomina').innerText = '$' + Math.round(globalNomina).toLocaleString('es-CO');
+        }
+
+        function guardarYRenderizar() {
+            localStorage.setItem('cosecha_semanal', JSON.stringify(planilla));
+            renderizarPlanilla();
+        }
+
+        function eliminarCosechero(id) {
+            if (confirm("¿Retirar a este cosechero de la planilla?")) {
+                planilla = planilla.filter(c => c.id !== id);
+                guardarYRenderizar();
+            }
+        }
+
+        function reiniciarSemana() {
+            if (confirm("¿Seguro que quiere resetear todos los kilos y descuentos de la semana actual?")) {
+                planilla.forEach(c => {
+                    c.dias = [0, 0, 0, 0, 0, 0];
+                    c.descuento = 0;
+                });
+                guardarYRenderizar();
+            }
+        }
+
+        // ==========================================
+        // SCRIPT REGISTRO DE MOTOR OFFLINE (PWA)
+        // ==========================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Motor de persistencia offline activo.'))
+                    .catch(err => console.error('Error de inicialización offline:', err));
+            });
+        }
+    </script>
+</body>
+</html>

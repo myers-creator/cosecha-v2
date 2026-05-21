@@ -1,0 +1,9 @@
+{
+  "short_name": "Cosecha V2",
+  "name": "Cosecha Automatizada V2 - Myers",
+  "start_url": "./index.html",
+  "background_color": "#0d110d",
+  "theme_color": "#00e676",
+  "display": "standalone",
+  "orientation": "portrait"
+}
