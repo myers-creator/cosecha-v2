@@ -3,584 +3,396 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Labs.Andersn.cdn</title>
+    <title>Cosecha Automatizada - Matriz Semanal</title>
+    <!-- Enlace al manifiesto para poder instalarla en el celular -->
     <link rel="manifest" href="manifest.json">
     <style>
-        * {
-            box-sizing: border-box;
+        :root {
+            --bg-principal: #0d110d;
+            --bg-tarjeta: #141914;
+            --bg-input: #090c09;
+            --verde-neon: #00e676;
+            --azul-cyan: #00b0ff;
+            --rojo-alerta: #ff5252;
+            --texto-blanco: #ffffff;
+            --texto-gris: #8a948a;
+            --borde: #222e22;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
             margin: 0;
             padding: 0;
-        }
-        body {
-            background-color: #0a0d10;
-            color: #00ff66;
-            font-family: 'Courier New', Courier, monospace;
-            padding: 15px;
+            background-color: var(--bg-principal);
+            color: var(--texto-blanco);
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
         }
-        .header {
+
+        header {
+            background-color: var(--bg-tarjeta);
+            width: 100%;
             text-align: center;
-            margin-bottom: 15px;
+            padding: 15px 0;
+            border-bottom: 2px solid var(--verde-neon);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
-        .header h1 {
-            font-size: 24px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+
+        header h1 { margin: 0; font-size: 1rem; letter-spacing: 1px; text-transform: uppercase; }
+
+        main {
+            width: 95%;
+            max-width: 480px;
+            padding: 15px 0 40px 0;
         }
-        .header p {
-            color: #8892b0;
-            font-size: 11px;
-            margin-top: 3px;
-            text-transform: uppercase;
-        }
-        .setup-box {
-            width: 100%;
-            max-width: 500px;
-            background: #11161d;
-            border: 1px solid #1f2937;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 15px;
-            display: flex;
-            gap: 8px;
-        }
-        .setup-box input {
-            flex: 2;
-            background: #0a0d10;
-            border: 1px solid #00ff66;
-            border-radius: 4px;
-            padding: 10px;
-            color: #fff;
-            font-size: 14px;
-            font-family: Arial, sans-serif;
-            outline: none;
-        }
-        .btn-add {
-            background: #00ff66;
-            color: #0a0d10;
-            border: none;
-            padding: 0 20px;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            font-size: 12px;
-            font-family: inherit;
-        }
-        .voice-status-panel {
-            width: 100%;
-            max-width: 500px;
-            background: #161d26;
-            border: 1px solid #1f2937;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 15px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        .btn-voice {
-            width: 100%;
-            padding: 12px;
-            background: #00ff66;
-            color: #0a0d10;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 13px;
-        }
-        .voice-indicator {
-            margin-top: 8px;
-            font-size: 11px;
-            color: #8892b0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: bold;
-        }
-        .vendors-container {
-            width: 100%;
-            max-width: 500px;
-        }
-        .vendor-card {
-            background: #11161d;
-            border: 1px solid #1f2937;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-            position: relative;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        .vendor-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            border-bottom: 1px dashed #1f2937;
-            padding-bottom: 8px;
-        }
-        .vendor-name {
-            font-size: 16px;
-            font-weight: bold;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-        }
-        .btn-del {
-            background: transparent;
-            color: #ff3333;
-            border: none;
-            cursor: pointer;
-            font-size: 11px;
-            text-transform: uppercase;
-        }
-        .price-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-            background: #0a0d10;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #1f2937;
-        }
-        .price-row label {
-            font-size: 11px;
-            color: #8892b0;
-            text-transform: uppercase;
-        }
-        .price-row input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid #00ff66;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            padding: 2px;
-            outline: none;
-        }
-        .grid-days {
+
+        .grid-totales {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
         }
-        .day-box {
-            display: flex;
-            flex-direction: column;
-        }
-        .day-box label {
-            font-size: 11px;
-            color: #39ff14;
-            margin-bottom: 2px;
-            text-transform: uppercase;
-        }
-        .day-box input {
-            background: #0a0d10;
-            border: 1px solid #1f2937;
-            border-radius: 4px;
-            padding: 8px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-            font-family: Arial, sans-serif;
+
+        .tarjeta-total {
+            background-color: var(--bg-tarjeta);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid var(--borde);
             text-align: center;
         }
-        .day-box input:focus {
-            border-color: #00ff66;
-            box-shadow: 0 0 5px rgba(0,255,102,0.5);
+
+        .total-valor { font-size: 1.4rem; font-weight: bold; margin-top: 4px; }
+        .color-kilos { color: var(--verde-neon); }
+        .color-pesos { color: var(--azul-cyan); }
+
+        .panel-control {
+            background-color: var(--bg-tarjeta);
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid var(--borde);
+            margin-bottom: 15px;
         }
-        .vendor-summary {
+
+        .control-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-inline div { flex: 1; }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--texto-gris);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--borde);
+            border-radius: 6px;
+            padding: 10px;
+            color: white;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--verde-neon); }
+
+        .btn-verde {
+            background-color: var(--verde-neon);
+            color: black;
+            border: none;
+            padding: 10px 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .contenedor-tabla {
+            background-color: var(--bg-tarjeta);
+            border-radius: 12px;
+            border: 1px solid var(--borde);
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .tarjeta-cosechero {
+            background-color: var(--bg-input);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--azul-cyan);
+        }
+
+        .header-cosechero {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(0, 255, 102, 0.05);
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid rgba(0, 255, 102, 0.15);
-            font-size: 13px;
+            margin-bottom: 10px;
         }
-        .total-weight-text {
-            color: #8892b0;
+
+        .nombre-cosechero { font-weight: bold; font-size: 1.05rem; }
+
+        .grid-dias {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            margin-bottom: 10px;
         }
-        .total-weight-text span {
-            color: #ffffff;
-            font-weight: bold;
+
+        .dia-col { text-align: center; }
+        .dia-col span { display: block; font-size: 0.65rem; color: var(--texto-gris); margin-bottom: 3px; }
+        .dia-col input { padding: 6px 2px; text-align: center; font-size: 0.85rem; }
+
+        .footer-cosechero {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 8px;
+            border-top: 1px solid #1c241c;
+            padding-top: 8px;
+            align-items: center;
         }
-        .total-pay-text {
-            color: #39ff14;
-            font-weight: bold;
+
+        .resultado-individual {
+            font-size: 0.85rem;
             text-align: right;
         }
-        .total-pay-text span {
-            font-size: 15px;
-            text-shadow: 0 0 8px rgba(0, 255, 102, 0.5);
-        }
-        .clear-all-btn {
-            margin-top: 15px;
-            width: 100%;
-            max-width: 500px;
-            background: transparent;
-            border: 1px dashed #ff3333;
-            color: #ff3333;
-            padding: 10px;
-            border-radius: 6px;
+
+        .btn-eliminar {
+            background: none;
+            border: none;
+            color: var(--rojo-alerta);
+            font-size: 0.8rem;
             cursor: pointer;
-            text-transform: uppercase;
-            font-size: 11px;
-            font-family: inherit;
+            text-align: left;
+            padding: 0;
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>LABS</h1>
-        <p>Calculadora de la Finca</p>
-    </div>
+    <header>
+        <h1>🚜 COSECHA AUTOMATIZADA V2 - DESIGN BY MYERS</h1>
+    </header>
 
-    <div class="setup-box">
-        <input type="text" id="newVendorName" placeholder="Nombre del recolector..." autocomplete="off">
-        <button class="btn-add" onclick="addVendor()">+ Ok</button>
-    </div>
+    <main>
+        <div class="grid-totales">
+            <div class="tarjeta-total">
+                <span class="texto-etiqueta" style="font-size:0.7rem; color:var(--texto-gris);">KILOS TOTALES SEMANA</span>
+                <div class="total-valor color-kilos" id="granTotalKilos">0.0</div>
+            </div>
+            <div class="tarjeta-total">
+                <span class="texto-etiqueta" style="font-size:0.7rem; color:var(--texto-gris);">NÓMINA GENERAL NETO</span>
+                <div class="total-valor color-pesos" id="granTotalNomina">$0</div>
+            </div>
+        </div>
 
-    <div class="voice-status-panel" id="voicePanel">
-        <button class="btn-voice" id="btnVoice" onclick="toggleVoiceEngine()">🎤 Activar Radar de Voz</button>
-        <div class="voice-indicator" id="voiceIndicator">Sistema de voz apagado</div>
-    </div>
+        <div class="panel-control">
+            <div class="control-inline">
+                <div>
+                    <label for="precioKilo">Precio Kilo ($)</label>
+                    <input type="number" id="precioKilo" value="1200" oninput="calcularTotalesGenerales()">
+                </div>
+                <div>
+                    <label>Acción Colectiva</label>
+                    <button class="btn-verde" style="background-color:#ff5252; color:white; width:100%;" onclick="reiniciarSemana()">Reset Semana</button>
+                </div>
+            </div>
+        </div>
 
-    <div class="vendors-container" id="vendorsContainer"></div>
+        <div class="panel-control">
+            <label for="nuevoNombre">Registrar Nuevo Cosechero</label>
+            <div class="control-inline">
+                <input type="text" id="nuevoNombre" placeholder="Nombre del recolector...">
+                <button class="btn-verde" onclick="agregarCosechero()">AGREGAR</button>
+            </div>
+        </div>
 
-    <button class="clear-all-btn" onclick="clearAllData()">Resetear Planilla de Finca</button>
+        <div class="contenedor-tabla">
+            <h3 style="margin: 0 0 12px 0; font-size: 0.9rem; text-transform: uppercase; color: var(--azul-cyan);">Planilla de Operaciones</h3>
+            <div id="listaCosecheros"></div>
+        </div>
+    </main>
 
     <script>
-        let vendors = JSON.parse(localStorage.getItem('labs_finca_calculator')) || [];
-        let recognition;
-        let isVoiceActive = false;
-        let voiceState = "IDLE"; 
+        let planilla = [];
 
-        function saveState() {
-            localStorage.setItem('labs_finca_calculator', JSON.stringify(vendors));
-        }
+        window.onload = function() {
+            const datosLocales = localStorage.getItem('cosecha_semanal');
+            if (datosLocales) {
+                planilla = JSON.parse(datosLocales);
+            } else {
+                planilla = []; 
+            }
+            renderizarPlanilla();
+        };
 
-        function addVendor() {
-            const inputName = document.getElementById('newVendorName');
-            const name = inputName.value.trim();
-            if (!name) return;
+        function agregarCosechero() {
+            const inputNom = document.getElementById('nuevoNombre');
+            const nombre = inputNom.value.trim();
+            if (!nombre) return;
 
-            const newVendor = {
-                id: 'v_' + Date.now(),
-                name: name,
-                price: '', 
-                weights: { lunes: '', martes: '', miercoles: '', jueves: '', viernes: '', sabado: '' }
+            const nuevo = {
+                id: Date.now(),
+                nombre: nombre,
+                dias: [0, 0, 0, 0, 0, 0],
+                descuento: 0
             };
 
-            vendors.push(newVendor);
-            saveState();
-            renderVendors();
-            inputName.value = '';
-            inputName.focus();
+            planilla.push(nuevo);
+            inputNom.value = '';
+            guardarYRenderizar();
         }
 
-        function deleteVendor(id) {
-            if (confirm('¿Eliminar este recolector de la lista?')) {
-                vendors = vendors.filter(v => v.id !== id);
-                saveState();
-                renderVendors();
+        function actualizarDato(cosecheroId, tipo, indexDia, valor) {
+            const num = parseFloat(valor) || 0;
+            const item = planilla.find(c => c.id === cosecheroId);
+            
+            if (item) {
+                if (tipo === 'dia') {
+                    item.dias[indexDia] = num;
+                } else if (tipo === 'descuento') {
+                    item.descuento = num;
+                }
+                localStorage.setItem('cosecha_semanal', JSON.stringify(planilla));
+                calcularTotalesGenerales();
             }
         }
 
-        function updateWeight(vendorId, day, value) {
-            const vendor = vendors.find(v => v.id === vendorId);
-            if (vendor) {
-                vendor.weights[day] = value;
-                saveState();
-                calculateTotals(vendorId); // Ejecuta el motor matemático en caliente sin destruir la vista
-            }
-        }
-
-        // Listener para actualizar el precio x arroba en tiempo real
-        document.addEventListener('input', function(e) {
-            if(e.target && e.target.classList.contains('price-input')) {
-                const vendorId = e.target.getAttribute('data-id');
-                const vendor = vendors.find(v => v.id === vendorId);
-                if (vendor) {
-                    vendor.price = e.target.value;
-                    saveState();
-                    calculateTotals(vendorId);
+        function evaluarTecla(event, cosecheroId, indexDia) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); 
+                const indexActual = planilla.findIndex(c => c.id === cosecheroId);
+                
+                if (indexActual !== -1 && indexActual + 1 < planilla.length) {
+                    const siguienteCosechero = planilla[indexActual + 1];
+                    const idSiguienteCasilla = `input-${siguienteCosechero.id}-${indexDia}`;
+                    const siguienteInput = document.getElementById(idSiguienteCasilla);
+                    
+                    if (siguienteInput) {
+                        siguienteInput.focus(); 
+                        siguienteInput.select(); 
+                    }
                 }
             }
-        });
-
-        // CALCULADORA INTELIGENTE: Computa sumas y multiplicaciones directo en caliente
-        function calculateTotals(vendorId) {
-            const vendor = vendors.find(v => v.id === vendorId);
-            if (!vendor) return;
-
-            let totalWeight = 0;
-            for (let day in vendor.weights) {
-                let val = parseFloat(vendor.weights[day].toString().replace(',', '.'));
-                if (!isNaN(val)) totalWeight += val;
-            }
-
-            let priceVal = parseFloat(vendor.price.toString().replace(',', '.'));
-            let totalPay = 0;
-            if (!isNaN(priceVal) && totalWeight > 0) {
-                totalPay = totalWeight * priceVal;
-            }
-
-            const weightEl = document.getElementById(`weight_${vendorId}`);
-            const payEl = document.getElementById(`pay_${vendorId}`);
-            if (weightEl) weightEl.innerText = totalWeight.toFixed(1);
-            if (payEl) {
-                payEl.innerText = new Intl.NumberFormat('es-CO', {
-                    style: 'currency',
-                    currency: 'COP',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                }).format(totalPay);
-            }
         }
 
-        function renderVendors() {
-            const container = document.getElementById('vendorsContainer');
-            container.innerHTML = '';
+        function renderizarPlanilla() {
+            const contenedor = document.getElementById('listaCosecheros');
+            contenedor.innerHTML = '';
 
-            vendors.forEach(vendor => {
-                const card = document.createElement('div');
-                card.className = 'vendor-card';
-                card.innerHTML = `
-                    <div class="vendor-header">
-                        <span class="vendor-name">${vendor.name}</span>
-                        <button class="btn-del" onclick="deleteVendor('${vendor.id}')">Eliminar</button>
+            if (planilla.length === 0) {
+                contenedor.innerHTML = `<div style="text-align:center; color:var(--texto-gris); padding:15px; font-size:0.85rem;">No hay cosecheros registrados.</div>`;
+                calcularTotalesGenerales();
+                return;
+            }
+
+            planilla.forEach(c => {
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'tarjeta-cosechero';
+                
+                tarjeta.innerHTML = `
+                    <div class="header-cosechero">
+                        <span class="nombre-cosechero">${c.nombre}</span>
+                        <button class="btn-eliminar" onclick="eliminarCosechero(${c.id})">Quitar</button>
+                    </div>
+                    
+                    <div class="grid-dias">
+                        <div class="dia-col"><span>Lun</span><input type="number" id="input-${c.id}-0" value="${c.dias[0]}" oninput="actualizarDato(${c.id}, 'dia', 0, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 0)"></div>
+                        <div class="dia-col"><span>Mar</span><input type="number" id="input-${c.id}-1" value="${c.dias[1]}" oninput="actualizarDato(${c.id}, 'dia', 1, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 1)"></div>
+                        <div class="dia-col"><span>Mié</span><input type="number" id="input-${c.id}-2" value="${c.dias[2]}" oninput="actualizarDato(${c.id}, 'dia', 2, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 2)"></div>
+                        <div class="dia-col"><span>Jue</span><input type="number" id="input-${c.id}-3" value="${c.dias[3]}" oninput="actualizarDato(${c.id}, 'dia', 3, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 3)"></div>
+                        <div class="dia-col"><span>Vie</span><input type="number" id="input-${c.id}-4" value="${c.dias[4]}" oninput="actualizarDato(${c.id}, 'dia', 4, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 4)"></div>
+                        <div class="dia-col"><span>Sáb</span><input type="number" id="input-${c.id}-5" value="${c.dias[5]}" oninput="actualizarDato(${c.id}, 'dia', 5, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 5)"></div>
                     </div>
 
-                    <div class="price-row">
-                        <label>Precio Arroba / Valor:</label>
-                        <input type="text" 
-                               inputmode="numeric" 
-                               class="price-input"
-                               data-id="${vendor.id}"
-                               placeholder="Ej: 12000" 
-                               value="${vendor.price}">
-                    </div>
-
-                    <div class="grid-days">
-                        ${['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'].map(day => `
-                            <div class="day-box">
-                                <label>${day.substring(0,3)}</label>
-                                <input type="text" 
-                                       inputmode="decimal" 
-                                       class="weight-input"
-                                       id="input_${vendor.id}_${day}"
-                                       value="${vendor.weights[day]}" 
-                                       placeholder="0"
-                                       oninput="updateWeight('${vendor.id}', '${day}', this.value)">
-                            </div>
-                        `).join('')}
-                    </div>
-
-                    <div class="vendor-summary">
-                        <div class="total-weight-text">Total Arrobas: <span id="weight_${vendor.id}">0.0</span></div>
-                        <div class="total-pay-text">A Pagar: <span id="pay_${vendor.id}">$0</span></div>
+                    <div class="footer-cosechero">
+                        <div>
+                            <label style="font-size:0.65rem;">Descuento ($)</label>
+                            <input type="number" value="${c.descuento}" placeholder="0" oninput="actualizarDato(${c.id}, 'descuento', null, this.value)">
+                        </div>
+                        <div class="resultado-individual" style="color: var(--verde-neon);">
+                            <span style="font-size:0.65rem; display:block; color:var(--texto-gris);">KG TOTAL</span>
+                            <strong id="kg-ind-${c.id}">0.0</strong>
+                        </div>
+                        <div class="resultado-individual" style="color: var(--azul-cyan);">
+                            <span style="font-size:0.65rem; display:block; color:var(--texto-gris);">NETO PAGO</span>
+                            <strong id="pago-ind-${c.id}">$0</strong>
+                        </div>
                     </div>
                 `;
-                container.appendChild(card);
-                calculateTotals(vendor.id);
+                contenedor.appendChild(tarjeta);
             });
 
-            setupNavigation();
+            calcularTotalesGenerales();
         }
 
-        function setupNavigation() {
-            const inputs = document.querySelectorAll('.weight-input');
-            inputs.forEach((input, index) => {
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const nextIndex = (index + 1) % inputs.length;
-                        if (inputs[nextIndex]) inputs[nextIndex].focus();
-                    }
+        function calcularTotalesGenerales() {
+            const precioKilo = parseFloat(document.getElementById('precioKilo').value) || 0;
+            let globalKilos = 0;
+            let globalNomina = 0;
+
+            planilla.forEach(c => {
+                const totalKilosCosechero = c.dias.reduce((a, b) => a + b, 0);
+                const brutoNomina = totalKilosCosechero * precioKilo;
+                const netoNomina = Math.max(0, brutoNomina - c.descuento);
+
+                globalKilos += totalKilosCosechero;
+                globalNomina += netoNomina;
+
+                const elKg = document.getElementById(`kg-ind-${c.id}`);
+                const elPago = document.getElementById(`pago-ind-${c.id}`);
+                
+                if (elKg) elKg.innerText = totalKilosCosechero.toFixed(1);
+                if (elPago) elPago.innerText = '$' + Math.round(netoNomina).toLocaleString('es-CO');
+            });
+
+            document.getElementById('granTotalKilos').innerText = globalKilos.toFixed(1);
+            document.getElementById('granTotalNomina').innerText = '$' + Math.round(globalNomina).toLocaleString('es-CO');
+        }
+
+        function guardarYRenderizar() {
+            localStorage.setItem('cosecha_semanal', JSON.stringify(planilla));
+            renderizarPlanilla();
+        }
+
+        function eliminarCosechero(id) {
+            if (confirm("¿Retirar a este cosechero de la planilla?")) {
+                planilla = planilla.filter(c => c.id !== id);
+                guardarYRenderizar();
+            }
+        }
+
+        function reiniciarSemana() {
+            if (confirm("¿Seguro que quiere resetear todos los kilos y descuentos de la semana actual?")) {
+                planilla.forEach(c => {
+                    c.dias = [0, 0, 0, 0, 0, 0];
+                    c.descuento = 0;
                 });
+                guardarYRenderizar();
+            }
+        }
+
+        // ==========================================
+        // SCRIPT REGISTRO DE MOTOR OFFLINE (PWA)
+        // ==========================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Motor de persistencia offline activo.'))
+                    .catch(err => console.error('Error de inicialización offline:', err));
             });
         }
-
-        // --- MOTOR DE VOZ INTELIGENTE (OFFLINE) ---
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
-            recognition.lang = 'es-CO';
-            recognition.continuous = true;
-            recognition.interimResults = false;
-
-            recognition.onresult = function(event) {
-                const resultIndex = event.resultIndex;
-                const phrase = event.results[resultIndex][0].transcript.toLowerCase().trim();
-                console.log("Frase detectada por radar: " + phrase);
-
-                const panel = document.getElementById('voicePanel');
-                const indicator = document.getElementById('voiceIndicator');
-
-                if (voiceState === "IDLE") {
-                    // Espera estrictamente la palabra clave de activación: "cosecha"
-                    if (phrase.includes('cosecha')) {
-                        voiceState = "WAITING_FOR_COMMAND";
-                        panel.style.borderColor = "#00ff66";
-                        panel.style.boxShadow = "0 0 15px rgba(0, 255, 102, 0.4)";
-                        indicator.innerText = "🔊 ESCUCHANDO... DICTA EL PESO";
-                        indicator.style.color = "#00ff66";
-                        
-                        // Si dictó todo el comando de un solo tiro (Ej: "Cosecha carlos martes doce")
-                        let cleanPhrase = phrase.replace('cosecha', '').trim();
-                        if (cleanPhrase.length > 3) {
-                            processFincaVoice(cleanPhrase);
-                        } else {
-                            // Confirmación explícita de escucha antes de capturar datos
-                            speakFeedback("Te escucho, dicta");
-                        }
-                    }
-                } else if (voiceState === "WAITING_FOR_COMMAND") {
-                    processFincaVoice(phrase);
-                }
-            };
-
-            recognition.onerror = function() {
-                if (isVoiceActive) restartVoiceEngine();
-            };
-
-            recognition.onend = function() {
-                if (isVoiceActive) recognition.start();
-            };
-        }
-
-        function toggleVoiceEngine() {
-            const btn = document.getElementById('btnVoice');
-            const indicator = document.getElementById('voiceIndicator');
-            const panel = document.getElementById('voicePanel');
-
-            if (!recognition) {
-                alert("Este dispositivo no cuenta con soporte de voz offline.");
-                return;
-            }
-
-            if (!isVoiceActive) {
-                isVoiceActive = true;
-                voiceState = "IDLE";
-                btn.innerText = "🛑 Desactivar Radar";
-                btn.style.background = "#ff3333";
-                indicator.innerText = "Modo Espera: Di 'Cosecha' para activar";
-                indicator.style.color = "#39ff14";
-                panel.style.borderColor = "#39ff14";
-                recognition.start();
-                speakFeedback("Radar en línea");
-            } else {
-                disableVoiceEngineVisuals();
-                recognition.stop();
-            }
-        }
-
-        function disableVoiceEngineVisuals() {
-            isVoiceActive = false;
-            voiceState = "IDLE";
-            const btn = document.getElementById('btnVoice');
-            const indicator = document.getElementById('voiceIndicator');
-            const panel = document.getElementById('voicePanel');
-            btn.innerText = "🎤 Activar Radar de Voz";
-            btn.style.background = "#00ff66";
-            indicator.innerText = "Sistema de voz apagado";
-            indicator.style.color = "#8892b0";
-            panel.style.borderColor = "#1f2937";
-            panel.style.boxShadow = "none";
-        }
-
-        function restartVoiceEngine() {
-            if (recognition && isVoiceActive) {
-                try { recognition.stop(); } catch(e){}
-                setTimeout(() => { if (isVoiceActive) recognition.start(); }, 300);
-            }
-        }
-
-        // MOTOR DE PROCESAMIENTO Y EJECUCIÓN MATEMÁTICA
-        function processFincaVoice(phrase) {
-            const daysWeek = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-            
-            let targetDay = daysWeek.find(d => phrase.includes(d));
-            let matchesNumeric = phrase.match(/\d+([.,]\d+)?/);
-            let targetWeight = matchesNumeric ? matchesNumeric[0].replace(',', '.') : null;
-
-            if (!targetDay || !targetWeight) {
-                speakFeedback("No entendí. Repite día y peso.");
-                return;
-            }
-
-            // Limpieza de cadena para aislar el nombre del recolector
-            let cleanText = phrase.replace(targetDay, '').replace(matchesNumeric[0], '').replace('cosecha', '').trim();
-            let matchedVendor = vendors.find(v => cleanText.includes(v.name.toLowerCase()) || v.name.toLowerCase().includes(cleanText));
-
-            if (!matchedVendor) {
-                speakFeedback(`Recolector ${cleanText} no existe`);
-                return;
-            }
-
-            // 1. Modificar matriz en memoria
-            matchedVendor.weights[targetDay] = targetWeight;
-            saveState();
-
-            // 2. Ejecutar la función matemática en caliente (Cálculo Inmediato)
-            calculateTotals(matchedVendor.id);
-
-            // 3. Modificar campo visual de forma fluida y enfocar con luz verde
-            const inputField = document.getElementById(`input_${matchedVendor.id}_${targetDay}`);
-            if (inputField) {
-                inputField.value = targetWeight;
-                inputField.focus();
-                inputField.style.borderColor = "#00ff66";
-                setTimeout(() => { inputField.style.borderColor = "#1f2937"; inputField.blur(); }, 1200);
-            }
-
-            // 4. Confirmación auditiva de los resultados procesados
-            speakFeedback(`${matchedVendor.name}. ${targetDay}. ${targetWeight}. Calculado.`);
-            
-            // 5. Reiniciar radar al estado pasivo de espera
-            voiceState = "IDLE";
-            const panel = document.getElementById('voicePanel');
-            const indicator = document.getElementById('voiceIndicator');
-            panel.style.borderColor = "#39ff14";
-            panel.style.boxShadow = "none";
-            indicator.innerText = "Modo Espera: Di 'Cosecha' para activar";
-            indicator.style.color = "#39ff14";
-        }
-
-        function speakFeedback(message) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(message);
-                utterance.lang = 'es-CO';
-                utterance.rate = 1.15; 
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function clearAllData() {
-            if (confirm('¿Deseas resetear por completo la planilla de la finca?')) {
-                vendors = [];
-                saveState();
-                renderVendors();
-            }
-        }
-
-        window.addEventListener('load', () => {
-            renderVendors();
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js')
-                    .then(() => console.log('SW Operativo'))
-                    .catch(err => console.error('SW Error', err));
-            }
-        });
     </script>
 </body>
 </html>
