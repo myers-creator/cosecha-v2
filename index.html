@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cosecha Automatizada - Matriz Semanal</title>
-    <!-- Enlace al manifiesto para poder instalarla en el celular -->
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
@@ -118,6 +117,35 @@
             cursor: pointer;
         }
 
+        .btn-voz-radar {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--verde-neon);
+            color: var(--verde-neon);
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-voz-radar.activo {
+            background: var(--verde-neon);
+            color: #000;
+            box-shadow: 0 0 10px var(--verde-neon);
+        }
+
+        .status-voz-text {
+            font-size: 0.75rem;
+            color: var(--texto-gris);
+            text-align: center;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .contenedor-tabla {
             background-color: var(--bg-tarjeta);
             border-radius: 12px;
@@ -152,7 +180,8 @@
 
         .dia-col { text-align: center; }
         .dia-col span { display: block; font-size: 0.65rem; color: var(--texto-gris); margin-bottom: 3px; }
-        .dia-col input { padding: 6px 2px; text-align: center; font-size: 0.85rem; }
+        .dia-col input { padding: 6px 2px; text-align: center; font-size: 0.85rem; -moz-appearance: textfield; }
+        .dia-col input::-webkit-outer-spin-button, .dia-col input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
         .footer-cosechero {
             display: grid;
@@ -176,6 +205,43 @@
             cursor: pointer;
             text-align: left;
             padding: 0;
+        }
+
+        .item-historial {
+            background: var(--bg-input);
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .header-historial {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--azul-cyan);
+            border-bottom: 1px dashed var(--borde);
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        .detalle-row-historial {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            padding: 2px 0;
+            color: var(--texto-blanco);
+        }
+        .btn-limpiar-historial {
+            background: transparent;
+            border: 1px dashed var(--rojo-alerta);
+            color: var(--rojo-alerta);
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -205,9 +271,15 @@
                 </div>
                 <div>
                     <label>Acción Colectiva</label>
-                    <button class="btn-verde" style="background-color:#ff5252; color:white; width:100%;" onclick="reiniciarSemana()">Reset Semana</button>
+                    <button class="btn-verde" style="background-color:var(--rojo-alerta); color:white; width:100%;" onclick="reiniciarSemana()">Reset Semana</button>
                 </div>
             </div>
+        </div>
+
+        <div class="panel-control">
+            <label>Módulo Inteligencia de Voz</label>
+            <button class="btn-voz-radar" id="radarVozBtn" onclick="toggleRadarVoz()">🎤 Activar Radar de Voz</button>
+            <div class="status-voz-text" id="radarVozStatus">Micrófono apagado</div>
         </div>
 
         <div class="panel-control">
@@ -222,19 +294,34 @@
             <h3 style="margin: 0 0 12px 0; font-size: 0.9rem; text-transform: uppercase; color: var(--azul-cyan);">Planilla de Operaciones</h3>
             <div id="listaCosecheros"></div>
         </div>
+
+        <div class="contenedor-tabla">
+            <h3 style="margin: 0 0 12px 0; font-size: 0.9rem; text-transform: uppercase; color: var(--verde-neon);">Historial de Semanas Archivadas</h3>
+            <div id="logHistorialSemanal"></div>
+            <button class="btn-limpiar-historial" id="btnBorrarHistorial" style="display:none;" onclick="limpiarHistorialCompleto()">Borrar Todo el Historial</button>
+        </div>
     </main>
 
     <script>
         let planilla = [];
+        let historial = [];
+        
+        // Variables Core del Motor de Voz
+        let recognition;
+        let isVoiceActive = false;
+        let voiceState = "IDLE"; 
+        let indexDiaContexto = -1; // Memoria persistente del día
 
         window.onload = function() {
             const datosLocales = localStorage.getItem('cosecha_semanal');
-            if (datosLocales) {
-                planilla = JSON.parse(datosLocales);
-            } else {
-                planilla = []; 
-            }
+            planilla = datosLocales ? JSON.parse(datosLocales) : [];
+            
+            const datosHistorial = localStorage.getItem('cosecha_historial_logs');
+            historial = datosHistorial ? JSON.parse(datosHistorial) : [];
+
             renderizarPlanilla();
+            renderizarHistorial();
+            initSpeechEngine();
         };
 
         function agregarCosechero() {
@@ -242,13 +329,7 @@
             const nombre = inputNom.value.trim();
             if (!nombre) return;
 
-            const nuevo = {
-                id: Date.now(),
-                nombre: nombre,
-                dias: [0, 0, 0, 0, 0, 0],
-                descuento: 0
-            };
-
+            const nuevo = { id: Date.now(), nombre: nombre, dias: [0, 0, 0, 0, 0, 0], descuento: 0 };
             planilla.push(nuevo);
             inputNom.value = '';
             guardarYRenderizar();
@@ -257,40 +338,17 @@
         function actualizarDato(cosecheroId, tipo, indexDia, valor) {
             const num = parseFloat(valor) || 0;
             const item = planilla.find(c => c.id === cosecheroId);
-            
             if (item) {
-                if (tipo === 'dia') {
-                    item.dias[indexDia] = num;
-                } else if (tipo === 'descuento') {
-                    item.descuento = num;
-                }
+                if (tipo === 'dia') item.dias[indexDia] = num;
+                else if (tipo === 'descuento') item.descuento = num;
                 localStorage.setItem('cosecha_semanal', JSON.stringify(planilla));
                 calcularTotalesGenerales();
-            }
-        }
-
-        function evaluarTecla(event, cosecheroId, indexDia) {
-            if (event.key === 'Enter') {
-                event.preventDefault(); 
-                const indexActual = planilla.findIndex(c => c.id === cosecheroId);
-                
-                if (indexActual !== -1 && indexActual + 1 < planilla.length) {
-                    const siguienteCosechero = planilla[indexActual + 1];
-                    const idSiguienteCasilla = `input-${siguienteCosechero.id}-${indexDia}`;
-                    const siguienteInput = document.getElementById(idSiguienteCasilla);
-                    
-                    if (siguienteInput) {
-                        siguienteInput.focus(); 
-                        siguienteInput.select(); 
-                    }
-                }
             }
         }
 
         function renderizarPlanilla() {
             const contenedor = document.getElementById('listaCosecheros');
             contenedor.innerHTML = '';
-
             if (planilla.length === 0) {
                 contenedor.innerHTML = `<div style="text-align:center; color:var(--texto-gris); padding:15px; font-size:0.85rem;">No hay cosecheros registrados.</div>`;
                 calcularTotalesGenerales();
@@ -300,26 +358,23 @@
             planilla.forEach(c => {
                 const tarjeta = document.createElement('div');
                 tarjeta.className = 'tarjeta-cosechero';
-                
                 tarjeta.innerHTML = `
                     <div class="header-cosechero">
                         <span class="nombre-cosechero">${c.nombre}</span>
                         <button class="btn-eliminar" onclick="eliminarCosechero(${c.id})">Quitar</button>
                     </div>
-                    
                     <div class="grid-dias">
-                        <div class="dia-col"><span>Lun</span><input type="number" id="input-${c.id}-0" value="${c.dias[0]}" oninput="actualizarDato(${c.id}, 'dia', 0, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 0)"></div>
-                        <div class="dia-col"><span>Mar</span><input type="number" id="input-${c.id}-1" value="${c.dias[1]}" oninput="actualizarDato(${c.id}, 'dia', 1, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 1)"></div>
-                        <div class="dia-col"><span>Mié</span><input type="number" id="input-${c.id}-2" value="${c.dias[2]}" oninput="actualizarDato(${c.id}, 'dia', 2, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 2)"></div>
-                        <div class="dia-col"><span>Jue</span><input type="number" id="input-${c.id}-3" value="${c.dias[3]}" oninput="actualizarDato(${c.id}, 'dia', 3, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 3)"></div>
-                        <div class="dia-col"><span>Vie</span><input type="number" id="input-${c.id}-4" value="${c.dias[4]}" oninput="actualizarDato(${c.id}, 'dia', 4, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 4)"></div>
-                        <div class="dia-col"><span>Sáb</span><input type="number" id="input-${c.id}-5" value="${c.dias[5]}" oninput="actualizarDato(${c.id}, 'dia', 5, this.value)" onkeydown="evaluarTecla(event, ${c.id}, 5)"></div>
+                        <div class="dia-col"><span>Lun</span><input type="number" step="any" id="input-${c.id}-0" value="${c.dias[0] || ''}" placeholder="0" oninput="actualizarDato(${c.id}, 'dia', 0, this.value)"></div>
+                        <div class="dia-col"><span>Mar</span><input type="number" step="any" id="input-${c.id}-1" value="${c.dias[1] || ''}" placeholder="0" oninput="actualizarDato(${c.id}, 'dia', 1, this.value)"></div>
+                        <div class="dia-col"><span>Mié</span><input type="number" step="any" id="input-${c.id}-2" value="${c.dias[2] || ''}" placeholder="0" oninput="actualizarDato(${c.id}, 'dia', 2, this.value)"></div>
+                        <div class="dia-col"><span>Jue</span><input type="number" step="any" id="input-${c.id}-3" value="${c.dias[3] || ''}" placeholder="0" oninput="actualizarDato(${c.id}, 'dia', 3, this.value)"></div>
+                        <div class="dia-col"><span>Vie</span><input type="number" step="any" id="input-${c.id}-4" value="${c.dias[4] || ''}" placeholder="0" oninput="actualizarDato(${c.id}, 'dia', 4, this.value)"></div>
+                        <div class="dia-col"><span>Sáb</span><input type="number" step="any" id="input-${c.id}-5" value="${c.dias[5] || ''}" placeholder="0" oninput="actualizarDato(${c.id}, 'dia', 5, this.value)"></div>
                     </div>
-
                     <div class="footer-cosechero">
                         <div>
                             <label style="font-size:0.65rem;">Descuento ($)</label>
-                            <input type="number" value="${c.descuento}" placeholder="0" oninput="actualizarDato(${c.id}, 'descuento', null, this.value)">
+                            <input type="number" value="${c.descuento || ''}" placeholder="0" oninput="actualizarDato(${c.id}, 'descuento', null, this.value)">
                         </div>
                         <div class="resultado-individual" style="color: var(--verde-neon);">
                             <span style="font-size:0.65rem; display:block; color:var(--texto-gris);">KG TOTAL</span>
@@ -333,30 +388,23 @@
                 `;
                 contenedor.appendChild(tarjeta);
             });
-
             calcularTotalesGenerales();
         }
 
         function calcularTotalesGenerales() {
             const precioKilo = parseFloat(document.getElementById('precioKilo').value) || 0;
-            let globalKilos = 0;
-            let globalNomina = 0;
-
+            let globalKilos = 0, globalNomina = 0;
             planilla.forEach(c => {
                 const totalKilosCosechero = c.dias.reduce((a, b) => a + b, 0);
                 const brutoNomina = totalKilosCosechero * precioKilo;
                 const netoNomina = Math.max(0, brutoNomina - c.descuento);
-
                 globalKilos += totalKilosCosechero;
                 globalNomina += netoNomina;
-
                 const elKg = document.getElementById(`kg-ind-${c.id}`);
                 const elPago = document.getElementById(`pago-ind-${c.id}`);
-                
                 if (elKg) elKg.innerText = totalKilosCosechero.toFixed(1);
                 if (elPago) elPago.innerText = '$' + Math.round(netoNomina).toLocaleString('es-CO');
             });
-
             document.getElementById('granTotalKilos').innerText = globalKilos.toFixed(1);
             document.getElementById('granTotalNomina').innerText = '$' + Math.round(globalNomina).toLocaleString('es-CO');
         }
@@ -367,31 +415,226 @@
         }
 
         function eliminarCosechero(id) {
-            if (confirm("¿Retirar a este cosechero de la planilla?")) {
+            if (confirm("¿Retirar a este cosechero?")) {
                 planilla = planilla.filter(c => c.id !== id);
                 guardarYRenderizar();
             }
         }
 
         function reiniciarSemana() {
-            if (confirm("¿Seguro que quiere resetear todos los kilos y descuentos de la semana actual?")) {
-                planilla.forEach(c => {
-                    c.dias = [0, 0, 0, 0, 0, 0];
-                    c.descuento = 0;
+            if (planilla.length === 0) return;
+            if (confirm("¿Seguro que quiere cerrar la semana y enviarla al historial?")) {
+                const precioActual = parseFloat(document.getElementById('precioKilo').value) || 0;
+                const totalKilosSemana = parseFloat(document.getElementById('granTotalKilos').innerText) || 0;
+                const fechaCierre = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                const desgloseCosecheros = planilla.map(c => {
+                    const kgTotales = c.dias.reduce((a, b) => a + b, 0);
+                    return { nombre: c.nombre, kilos: kgTotales, descuento: c.descuento, pago: Math.max(0, (kgTotales * precioActual) - c.descuento) };
                 });
+
+                historial.unshift({ id: Date.now(), fecha: fechaCierre, precioKilo: precioActual, totalKilos: totalKilosSemana, totalNomina: document.getElementById('granTotalNomina').innerText, detalles: desgloseCosecheros });
+                localStorage.setItem('cosecha_historial_logs', JSON.stringify(historial));
+
+                planilla.forEach(c => { c.dias = [0, 0, 0, 0, 0, 0]; c.descuento = 0; });
                 guardarYRenderizar();
+                renderizarHistorial();
+                speakFeedback("Semana archivada con éxito.");
+            }
+        }
+
+        function renderizarHistorial() {
+            const contenedor = document.getElementById('logHistorialSemanal');
+            const btnLimpiar = document.getElementById('btnBorrarHistorial');
+            contenedor.innerHTML = '';
+            if (historial.length === 0) {
+                contenedor.innerHTML = `<div style="text-align:center; color:var(--texto-gris); padding:10px; font-size:0.8rem;">No hay registros archivados.</div>`;
+                btnLimpiar.style.display = 'none';
+                return;
+            }
+            btnLimpiar.style.display = 'block';
+
+            historial.forEach(h => {
+                const item = document.createElement('div');
+                item.className = 'item-historial';
+                let htmlDetalles = '';
+                h.detalles.forEach(det => {
+                    if (det.kilos > 0 || det.descuento > 0) {
+                        htmlDetalles += `<div class="detalle-row-historial"><span>• ${det.nombre}</span><span style="color:var(--texto-gris);">${det.kilos.toFixed(1)} Kg | -$${det.descuento.toLocaleString('es-CO')}</span><span style="color:var(--azul-cyan); font-weight:bold;">$${Math.round(det.pago).toLocaleString('es-CO')}</span></div>`;
+                    }
+                });
+                item.innerHTML = `
+                    <div class="header-historial"><span>📅 ${h.fecha}</span><span style="color:var(--verde-neon);">Precio: $${h.precioKilo}</span></div>
+                    <div style="font-size:0.85rem; font-weight:bold; margin-bottom:6px; display:flex; justify-content:space-between;"><span>TOTAL: <span style="color:var(--verde-neon);">${h.totalKilos.toFixed(1)} KG</span></span><span style="color:var(--azul-cyan);">${h.totalNomina}</span></div>
+                    <div style="padding-left:4px; border-left: 2px solid #222e22; margin-top:4px;">${htmlDetalles || 'Sin datos'}</div>
+                `;
+                contenedor.appendChild(item);
+            });
+        }
+
+        function limpiarHistorialCompleto() {
+            if (confirm("🚨 ¿Vaciar todo el historial permanentemente?")) {
+                historial = [];
+                localStorage.setItem('cosecha_historial_logs', JSON.stringify(historial));
+                renderizarHistorial();
             }
         }
 
         // ==========================================
-        // SCRIPT REGISTRO DE MOTOR OFFLINE (PWA)
+        // MOTOR DE VOZ: MEMORIA DE CONTEXTO Y BUCLE
         // ==========================================
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Motor de persistencia offline activo.'))
-                    .catch(err => console.error('Error de inicialización offline:', err));
-            });
+        function initSpeechEngine() {
+            if ('webkitSpeechRecognition' in window || 'speechRecognition' in window) {
+                const SpeechClass = window.webkitSpeechRecognition || window.speechRecognition;
+                recognition = new SpeechClass();
+                recognition.lang = 'es-CO';
+                recognition.continuous = true;
+                recognition.interimResults = false;
+
+                recognition.onresult = function(event) {
+                    const resultIndex = event.resultIndex;
+                    const phrase = event.results[resultIndex][0].transcript.toLowerCase().trim();
+                    console.log("Radar captó: " + phrase);
+
+                    const statusTxt = document.getElementById('radarVozStatus');
+
+                    if (voiceState === "IDLE") {
+                        if (phrase.includes('activa pesa')) {
+                            voiceState = "ACTIVE";
+                            statusTxt.innerText = "🔊 SESIÓN ACTIVA... DICTE EL DÍA";
+                            statusTxt.style.color = "var(--verde-neon)";
+                            speakFeedback("Cosecha inteligente activa. Te escucho.");
+                        }
+                    } else if (voiceState === "ACTIVE") {
+                        if (phrase.includes('apagar pesa') || phrase.includes('pausa')) {
+                            voiceState = "IDLE";
+                            statusTxt.innerText = "Radar en pausa. Diga 'activa pesa' para volver.";
+                            statusTxt.style.color = "var(--texto-gris)";
+                            speakFeedback("Radar en pausa.");
+                            return;
+                        }
+                        procesarComandoContinuo(phrase);
+                    }
+                };
+
+                recognition.onerror = function(e) {
+                    if (isVoiceActive) reiniciarInstanciaVoz();
+                };
+
+                recognition.onend = function() {
+                    if (isVoiceActive) recognition.start();
+                };
+            }
+        }
+
+        function toggleRadarVoz() {
+            const btn = document.getElementById('radarVozBtn');
+            const statusTxt = document.getElementById('radarVozStatus');
+
+            if (!recognition) return alert("Dispositivo sin soporte nativo de voz.");
+
+            if (!isVoiceActive) {
+                isVoiceActive = true;
+                voiceState = "ACTIVE"; // Entra directamente a escuchar
+                btn.classList.add('activo');
+                btn.innerText = "🛑 Desactivar Radar";
+                statusTxt.innerText = "🔊 SESIÓN ACTIVA... DICTE EL DÍA";
+                statusTxt.style.color = "var(--verde-neon)";
+                recognition.start();
+                speakFeedback("Cosecha inteligente activa. Te escucho.");
+            } else {
+                isVoiceActive = false;
+                voiceState = "IDLE";
+                indexDiaContexto = -1; // Limpia la memoria del día al apagar
+                btn.classList.remove('activo');
+                btn.innerText = "🎤 Activar Radar de Voz";
+                statusTxt.innerText = "Micrófono apagado";
+                statusTxt.style.color = "var(--texto-gris)";
+                recognition.stop();
+            }
+        }
+
+        function reiniciarInstanciaVoz() {
+            if (recognition && isVoiceActive) {
+                try { recognition.stop(); } catch(e){}
+                setTimeout(() => { if (isVoiceActive) recognition.start(); }, 300);
+            }
+        }
+
+        function procesarComandoContinuo(phrase) {
+            const diasMapeados = {
+                'lunes': 0, 'marte': 1, 'martes': 1, 'miercoles': 2, 'miércoles': 2,
+                'jueves': 3, 'viernes': 4, 'sabado': 5, 'sábado': 5
+            };
+
+            // 1. Detectar si el usuario está estableciendo un día
+            let diaDetectado = null;
+            for (let d in diasMapeados) {
+                if (phrase.includes(d)) {
+                    diaDetectado = d;
+                    indexDiaContexto = diasMapeados[d]; // Fijar el día en la memoria de la sesión
+                    break;
+                }
+            }
+
+            // Extraer números (kilos)
+            let matchNumeros = phrase.match(/\d+([.,]\d+)?/);
+            let kilosDetectados = matchNumeros ? matchNumeros[0].replace(',', '.') : null;
+
+            // CASO A: Solo dijo el día (Ej: "Lunes")
+            if (diaDetectado && !kilosDetectados) {
+                speakFeedback(`Día ${diaDetectado} fijado.`);
+                return;
+            }
+
+            // CASO B: Hay datos numéricos, pero no ha fijado un día
+            if (kilosDetectados && indexDiaContexto === -1) {
+                speakFeedback("Por favor, diga el día de la semana primero.");
+                return;
+            }
+
+            // CASO C: Tenemos kilos y un día ya fijado. Buscar el nombre del cosechero.
+            if (kilosDetectados && indexDiaContexto !== -1) {
+                let textoLimpio = phrase;
+                if (diaDetectado) textoLimpio = textoLimpio.replace(diaDetectado, '');
+                textoLimpio = textoLimpio.replace(matchNumeros[0], '').replace('activa pesa', '').trim();
+
+                let cosecheroEncontrado = planilla.find(c => 
+                    textoLimpio.includes(c.nombre.toLowerCase()) || c.nombre.toLowerCase().includes(textoLimpio)
+                );
+
+                if (!cosecheroEncontrado) {
+                    if (textoLimpio.length > 2) speakFeedback("Cosechero no encontrado.");
+                    return;
+                }
+
+                // Aplicar kilos a la celda del día guardado en memoria
+                cosecheroEncontrado.dias[indexDiaContexto] = parseFloat(kilosDetectados);
+                localStorage.setItem('cosecha_semanal', JSON.stringify(planilla));
+                
+                renderizarPlanilla();
+                
+                // Feedback visual en la celda
+                const inputTarget = document.getElementById(`input-${cosecheroEncontrado.id}-${indexDiaContexto}`);
+                if (inputTarget) {
+                    inputTarget.focus();
+                    inputTarget.style.borderColor = "var(--verde-neon)";
+                    setTimeout(() => { inputTarget.style.borderColor = "var(--borde)"; inputTarget.blur(); }, 1500);
+                }
+
+                // Confirmación por voz sin soltar el bucle de escucha
+                speakFeedback(`${cosecheroEncontrado.nombre}, ${kilosDetectados} kilos.`);
+            }
+        }
+
+        function speakFeedback(message) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(message);
+                utterance.lang = 'es-CO';
+                utterance.rate = 1.15; 
+                window.speechSynthesis.speak(utterance);
+            }
         }
     </script>
 </body>
